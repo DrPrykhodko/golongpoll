@@ -1,9 +1,12 @@
 package golongpoll
 
 import (
+	"bytes"
 	"container/list"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/jsonapi"
 	"time"
 )
 
@@ -14,15 +17,50 @@ import (
 // via the encoding/json library's json.Marshal function.
 type lpEvent struct {
 	// Timestamp is milliseconds since epoch to match javascrits Date.getTime()
-	Timestamp int64  `json:"timestamp"`
-	Category  string `json:"category"`
+	Timestamp int64
+	Category  string
 	// NOTE: Data can be anything that is able to passed to json.Marshal()
-	Data interface{} `json:"data"`
+	// MY NOTE: Data can be only JSONAPI Object
+	Data interface{}
 }
 
 // eventResponse is the json response that carries longpoll events.
-type eventResponse struct {
-	Events *[]lpEvent `json:"events"`
+type eventResponse []*lpEvent
+
+func (e eventResponse) MarshalJSON() ([]byte, error) {
+	datas := make([]interface{}, 0)
+	for _, d := range e {
+		datas = append(datas, d.Data)
+	}
+
+	buffer := bytes.Buffer{}
+	err := jsonapi.MarshalPayload(&buffer, datas)
+	if err != nil {
+		return nil, err
+	}
+
+	var j map[string][]interface{}
+	err = json.Unmarshal(buffer.Bytes(), &j)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(j); i++ {
+		data, ok := j["data"][i].(map[string]interface{})
+		if !ok {
+			return nil, errors.New("data is missing")
+		}
+		meta, ok := data["meta"].(map[string]interface{})
+		if !ok {
+			meta = map[string]interface{}{}
+		}
+
+		meta["timestamp"] = time.Unix(0, e[i].Timestamp*int64(time.Millisecond))
+		meta["category"] = e[i].Category
+		data["meta"] = meta
+	}
+
+	return json.Marshal(&j)
 }
 
 // eventBuffer is a buffer of Events that adds new events to the front/root and
@@ -79,8 +117,8 @@ func (eb *eventBuffer) QueueEvent(event *lpEvent) error {
 // Optionally removes returned events from the eventBuffer if told to do so by
 // deleteFetchedEvents argument.
 func (eb *eventBuffer) GetEventsSince(since time.Time,
-	deleteFetchedEvents bool) ([]lpEvent, error) {
-	events := make([]lpEvent, 0)
+	deleteFetchedEvents bool) ([]*lpEvent, error) {
+	events := make([]*lpEvent, 0)
 	// NOTE: events are bufferd with the most recent event at the front.
 	// So we want to start our search at the front of the buffer and stop
 	// searching once we've reached events that are older than the 'since'
@@ -119,7 +157,7 @@ func (eb *eventBuffer) GetEventsSince(since time.Time,
 			}
 			// we already know this event is after 'since'
 			events = append(events,
-				lpEvent{event.Timestamp, event.Category, event.Data})
+				&lpEvent{event.Timestamp, event.Category, event.Data})
 			// Advance iteration before List.Remove() invalidates element.prev
 			prev = element.Prev()
 			// Now safely remove from list if told to do so:

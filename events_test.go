@@ -15,9 +15,9 @@ func Test_eventBuffer_QueueEvent(t *testing.T) {
 		timeToEpochMilliseconds(test_start),
 	}
 	var events = []lpEvent{
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-10 * time.Second)), "red", "some string data 1"},
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-5 * time.Second)), "blue", "some string data 2"},
-		lpEvent{timeToEpochMilliseconds(test_start), "red", "some string data 3"}}
+		{timeToEpochMilliseconds(test_start.Add(-10 * time.Second)), "red", "some string data 1"},
+		{timeToEpochMilliseconds(test_start.Add(-5 * time.Second)), "blue", "some string data 2"},
+		{timeToEpochMilliseconds(test_start), "red", "some string data 3"}}
 	for i := range events {
 		if err := buffer.QueueEvent(&events[i]); err != nil {
 			t.Errorf("Event queue failed when it shouldn't have. Tried to queue: %q", events[i])
@@ -139,14 +139,14 @@ func Test_eventBuffer_GetEventsSince(t *testing.T) {
 	}
 	// Three of the events in our buffer occurred after our since param
 	since := test_start.Add(-9 * time.Second)
-	var events = []lpEvent{
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-12 * time.Second)), "red", "some string data 1"},
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-11 * time.Second)), "blue", "some string data 2"},
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-8 * time.Second)), "red", "some string data 3"},
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-5 * time.Second)), "blue", "some string data 4"},
-		lpEvent{timeToEpochMilliseconds(test_start), "red", "some string data 5"}}
+	var events = []*lpEvent{
+		{timeToEpochMilliseconds(test_start.Add(-12 * time.Second)), "red", "some string data 1"},
+		{timeToEpochMilliseconds(test_start.Add(-11 * time.Second)), "blue", "some string data 2"},
+		{timeToEpochMilliseconds(test_start.Add(-8 * time.Second)), "red", "some string data 3"},
+		{timeToEpochMilliseconds(test_start.Add(-5 * time.Second)), "blue", "some string data 4"},
+		{timeToEpochMilliseconds(test_start), "red", "some string data 5"}}
 	for i := range events {
-		if err := buffer.QueueEvent(&events[i]); err != nil {
+		if err := buffer.QueueEvent(events[i]); err != nil {
 			t.Errorf("Event queue failed when it shouldn't have. Tried to queue: %q", events[i])
 		}
 	}
@@ -189,14 +189,14 @@ func Test_eventBuffer_GetEventsSince_deleteFetchedEvents(t *testing.T) {
 	}
 	// Three of the events in our buffer occurred after our since param
 	since := test_start.Add(-9 * time.Second)
-	var events = []lpEvent{
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-12 * time.Second)), "red", "some string data 1"},
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-11 * time.Second)), "blue", "some string data 2"},
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-8 * time.Second)), "red", "some string data 3"},
-		lpEvent{timeToEpochMilliseconds(test_start.Add(-5 * time.Second)), "blue", "some string data 4"},
-		lpEvent{timeToEpochMilliseconds(test_start), "red", "some string data 5"}}
+	var events = []*lpEvent{
+		{timeToEpochMilliseconds(test_start.Add(-12 * time.Second)), "red", "some string data 1"},
+		{timeToEpochMilliseconds(test_start.Add(-11 * time.Second)), "blue", "some string data 2"},
+		{timeToEpochMilliseconds(test_start.Add(-8 * time.Second)), "red", "some string data 3"},
+		{timeToEpochMilliseconds(test_start.Add(-5 * time.Second)), "blue", "some string data 4"},
+		{timeToEpochMilliseconds(test_start), "red", "some string data 5"}}
 	for i := range events {
-		if err := buffer.QueueEvent(&events[i]); err != nil {
+		if err := buffer.QueueEvent(events[i]); err != nil {
 			t.Errorf("Event queue failed when it shouldn't have. Tried to queue: %q", events[i])
 		}
 	}
@@ -236,10 +236,10 @@ func Test_eventBuffer_GetEventsSince_deleteFetchedEvents(t *testing.T) {
 		t.Errorf("buffer had unexpected number of events.  was: %d, expected: %d.",
 			buffer.List.Len(), 2)
 	}
-	if buffer.List.Front().Value.(*lpEvent) != &events[1] {
+	if buffer.List.Front().Value.(*lpEvent) != events[1] {
 		t.Errorf("buffer had unexpected event at front. expected events[1].")
 	}
-	if buffer.List.Front().Next().Value.(*lpEvent) != &events[0] {
+	if buffer.List.Front().Next().Value.(*lpEvent) != events[0] {
 		t.Errorf("buffer had unexpected event at second item. expected events[0].")
 	}
 }
@@ -252,14 +252,14 @@ func Test_eventBuffer_GetEventsSince_AllEvents(t *testing.T) {
 	}
 	// All of the events in the buffer occurred after our since param
 	since := time.Now().Add(-30 * time.Second)
-	var events = []lpEvent{
-		lpEvent{timeToEpochMilliseconds(time.Now().Add(-12 * time.Second)), "red", "some string data 1"},
-		lpEvent{timeToEpochMilliseconds(time.Now().Add(-11 * time.Second)), "blue", "some string data 2"},
-		lpEvent{timeToEpochMilliseconds(time.Now().Add(-8 * time.Second)), "red", "some string data 3"},
-		lpEvent{timeToEpochMilliseconds(time.Now().Add(-5 * time.Second)), "blue", "some string data 4"},
-		lpEvent{timeToEpochMilliseconds(time.Now()), "red", "some string data 5"}}
+	var events = []*lpEvent{
+		{timeToEpochMilliseconds(time.Now().Add(-12 * time.Second)), "red", "some string data 1"},
+		{timeToEpochMilliseconds(time.Now().Add(-11 * time.Second)), "blue", "some string data 2"},
+		{timeToEpochMilliseconds(time.Now().Add(-8 * time.Second)), "red", "some string data 3"},
+		{timeToEpochMilliseconds(time.Now().Add(-5 * time.Second)), "blue", "some string data 4"},
+		{timeToEpochMilliseconds(time.Now()), "red", "some string data 5"}}
 	for i := range events {
-		if err := buffer.QueueEvent(&events[i]); err != nil {
+		if err := buffer.QueueEvent(events[i]); err != nil {
 			t.Errorf("Event queue failed when it shouldn't have. Tried to queue: %q", events[i])
 		}
 	}
